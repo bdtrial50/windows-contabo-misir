@@ -29,7 +29,7 @@ This guide provides step-by-step instructions for installing Windows 10 on a Con
 - Log in with the command `ssh root@<MACHINE-IP>` and enter your Rescue System password.
 - Execute the following commands:
   - `apt install git -y`
-  - `git clone https://github.com/Ghostyenc/Windows-Server-Contabo-VPS.git`
+  - `git clone https://github.com/TasikIslam/windows-contabo.git`
   - `cd windows-contabo`
   - `chmod +x windows-install.sh`
   - `./windows-install.sh`
@@ -43,56 +43,10 @@ This guide provides step-by-step instructions for installing Windows 10 on a Con
   ![text](https://i.ibb.co/j8Ckb0x/windows-installer.png)
 
 - Follow the on-screen prompts to install Windows.
-- Install the virtIO drivers as shown in the following images.
-- Click on "Browse"
-  
-  ![text](https://i.ibb.co/x2S5brz/browser.png)
-
-- From Boot select `virtio_drivers`
-  
-  ![text](https://i.ibb.co/MghHSxm/virtio.png)
-
-- Select `amd64\w10` and click on "Ok"
-  
-  ![text](https://i.ibb.co/jTmb57J/w10.png)
-
-- Click on "Next"
-  
-  ![text](https://i.ibb.co/LS3sq47/next.png)
 
 - Click on "Custom: Install Windows Only (advanced)"
 
   ![text](https://i.ibb.co/X7swb6C/custom-install.png)
-
-- For the installation, select the partition `Drive 0 Partition 1`
-  
-  ![text](https://i.ibb.co/mSq9KjR/select-partition.png)
-
-- Choose the operating system and then click on "Next"
-  
-  ![text](https://i.ibb.co/2FF8W7b/os-select.png)
-
-### 4. Install the Ethernet adapter for internet connection
-
-- Open the `Device Manager`
-
-  ![text](https://i.ibb.co/PxGQ9Rz/device-manager.png)
-
-- Right-click on `Ethernet Controller` and select `Update Driver`
-  
-  ![text](https://i.ibb.co/Ycjf3b4/update-driver.png)
-
-- Choose `Browse my computer for drivers`
-  
-  ![text](https://i.ibb.co/X7vht8v/browse-computer-drivers.png)
-
-- Click on `Browse` and select the path `C:\sources\virtio`, and click "Next"
-  
-  ![text](https://i.ibb.co/7WJXyxW/driver-path.png)
-
-- Click on `Install`
-  
-  ![text](https://i.ibb.co/0nqRzJG/install-driver.png)
 
 ### 5. Allow Remote Access Connection for RDP
 
