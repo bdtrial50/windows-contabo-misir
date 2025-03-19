@@ -64,10 +64,10 @@ EOF
 cd /root/windisk
 mkdir -p winfile
 
-wget -O /root/windisk/win10.iso --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" https://bit.ly/3UGzNcB
+wget -O /root/windisk/Windows_SERVER_2022_NTLite.iso "https://www.dropbox.com/scl/fi/kjvjlmhbt8fbwa9zxmke2/Windows_SERVER_2022_NTLite.iso?rlkey=2qrb3egcnec7wnt3wqrrk50rl&st=t69g63uc&dl=1"
 
 # Mount the ISO and copy files
-mount -o loop /root/windisk/win10.iso winfile
+mount -o loop /root/windisk/Windows_SERVER_2022_NTLite.iso winfile
 
 rsync -avz --progress winfile/* /mnt
 
