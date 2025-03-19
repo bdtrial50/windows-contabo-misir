@@ -50,11 +50,11 @@ grub-install --root-directory=/mnt /dev/sda
 # Edit GRUB configuration to correctly chainload Windows boot manager
 cd /mnt/boot/grub
 cat <<EOF > grub.cfg
-menuentry "windows installer" {
+menuentry "Windows Installer" {
+    insmod part_gpt
     insmod ntfs
-    search --set=root --file /bootmgr
+    set root='hd0,gpt1'
     chainloader +1
-    boot
 }
 EOF
 
