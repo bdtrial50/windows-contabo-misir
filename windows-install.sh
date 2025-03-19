@@ -55,7 +55,7 @@ cat <<EOF > grub.cfg
 menuentry "windows installer" {
     insmod ntfs
     search --set=root --file /bootmgr
-    chainloader /bootmgr
+    chainloader +1
     boot
 }
 EOF
