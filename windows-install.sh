@@ -6,8 +6,9 @@ exec > >(tee -a /var/log/windows_install.log) 2>&1
 
 # Update system and install required packages
 echo "Updating system and installing required packages..."
+export DEBIAN_FRONTEND=noninteractive
 apt update -y && apt upgrade -y
-apt install grub2 wimtools ntfs-3g parted rsync wget -y
+apt install -y grub2 wimtools ntfs-3g parted rsync wget
 
 # Verify disk name (use /dev/vda for some VPS providers)
 disk=$(lsblk -d -o NAME | grep -E '^(s|v)d[a-z]$' | head -n 1)
@@ -16,13 +17,6 @@ if [[ -z "$disk" ]]; then
     exit 1
 fi
 echo "Using disk: /dev/$disk"
-
-# Confirm disk erasure
-read -p "This will erase all data on /dev/$disk. Are you sure? (y/n): " confirm
-if [[ $confirm != "y" ]]; then
-    echo "Aborting."
-    exit 1
-fi
 
 # Get the disk size in GB and convert to MB
 disk_size_gb=$(parted /dev/$disk --script print | awk '/^Disk \/dev\/'"$disk"':/ {print int($3)}')
@@ -42,6 +36,12 @@ part_size_mb=$((disk_size_mb / 4))
 echo "Creating GPT partition table on /dev/$disk..."
 parted /dev/$disk --script mklabel gpt
 
+# Unmount any existing partitions on the disk
+echo "Unmounting existing partitions on /dev/$disk..."
+for partition in $(lsblk -o NAME -n /dev/$disk | grep -E '^'"$disk"'[0-9]+'); do
+    umount -l /dev/$partition || true
+done
+
 # Create two partitions:
 #  - Partition 1: from 1MB to 25% of the disk (for Windows installation files)
 #  - Partition 2: from 25% to 50% of the disk (used as working area)
@@ -51,8 +51,6 @@ parted /dev/$disk --script mkpart primary ntfs ${part_size_mb}MB $((2 * part_siz
 
 # Inform kernel of partition table changes
 echo "Updating kernel partition table..."
-partprobe /dev/$disk
-sleep 5
 partprobe /dev/$disk
 sleep 5
 
@@ -127,9 +125,4 @@ wimlib-imagex update boot.wim 2 < cmd.txt
 
 # Reboot to load GRUB and start Windows installer
 echo "Setup complete. Rebooting..."
-read -p "Reboot now? (y/n): " reboot_confirm
-if [[ $reboot_confirm == "y" ]]; then
-    reboot
-else
-    echo "Reboot manually when ready."
-fi
+reboot
