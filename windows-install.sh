@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Update system and install required packages
 apt update -y && apt upgrade -y
+
 apt install grub2 wimtools ntfs-3g -y
 
 # Get the disk size in GB and convert to MB
@@ -23,76 +23,73 @@ partprobe /dev/sda
 
 sleep 30
 
-# Reapply partprobe after a short delay
 partprobe /dev/sda
+
 sleep 30
 
 partprobe /dev/sda
-sleep 30
 
-# Format the partitions as NTFS
+sleep 30 
+
+# Format the partitions
 mkfs.ntfs -f /dev/sda1
 mkfs.ntfs -f /dev/sda2
 
 echo "NTFS partitions created"
 
-# Use gdisk to update the partition table
 echo -e "r\ng\np\nw\nY\n" | gdisk /dev/sda
 
-# Mount the first partition
 mount /dev/sda1 /mnt
 
 # Prepare directory for the Windows disk
 cd ~
-mkdir windisk
-mount /dev/sda2 windisk
+mkdir -p /root/windisk
 
-# Install GRUB bootloader
+mount /dev/sda2 /root/windisk
+
 grub-install --root-directory=/mnt /dev/sda
 
-# Edit GRUB configuration to add Windows boot entry
+# Edit GRUB configuration
 cd /mnt/boot/grub
 cat <<EOF > grub.cfg
-menuentry "Windows installer" {
-    insmod ntfs
-    search --set=root --file=/bootmgr
-    ntldr /bootmgr
-    boot
+menuentry "windows installer" {
+	insmod ntfs
+	search --set=root --file=/bootmgr
+	ntldr /bootmgr
+	boot
 }
 EOF
 
-# Download Windows ISO if not already downloaded
+# Download the Windows ISO to the correct path
 cd /root/windisk
+mkdir -p winfile
 
-if [ ! -f win10.iso ]; then
-    echo "Downloading Windows 10 ISO..."
-    wget -O win10.iso --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" https://bit.ly/3UGzNcB
-fi
+wget -O /root/windisk/win10.iso --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" https://bit.ly/3UGzNcB
 
-# Mount the ISO file and copy its contents to the partition
-mkdir winfile
-mount -o loop win10.iso winfile
+# Mount the ISO and copy files
+mount -o loop /root/windisk/win10.iso winfile
+
 rsync -avz --progress winfile/* /mnt
 
-# Unmount the Windows ISO
 umount winfile
 
-# Download Virtio drivers ISO
-if [ ! -f virtio.iso ]; then
-    echo "Downloading Virtio drivers ISO..."
-    wget -O virtio.iso https://bit.ly/4d1g7Ht
-fi
+# Download virtio drivers
+wget -O /root/windisk/virtio.iso https://bit.ly/4d1g7Ht
 
-# Mount Virtio drivers ISO and copy its contents
-mount -o loop virtio.iso winfile
+mount -o loop /root/windisk/virtio.iso winfile
+
 mkdir /mnt/sources/virtio
+
 rsync -avz --progress winfile/* /mnt/sources/virtio
 
-# Update boot.wim with Virtio drivers
+# Add virtio drivers to the boot.wim
 cd /mnt/sources
+
 touch cmd.txt
+
 echo 'add virtio /virtio_drivers' >> cmd.txt
+
 wimlib-imagex update boot.wim 2 < cmd.txt
 
-# Reboot the system
+# Reboot after installation steps
 reboot
