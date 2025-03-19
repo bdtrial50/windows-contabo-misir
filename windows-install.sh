@@ -10,7 +10,11 @@ apt update -y && apt upgrade -y
 apt install grub2 wimtools ntfs-3g parted rsync wget -y
 
 # Verify disk name (use /dev/vda for some VPS providers)
-disk=$(lsblk -d -o NAME | grep -v NAME | head -n 1)
+disk=$(lsblk -d -o NAME | grep -E '^(s|v)d[a-z]$' | head -n 1)
+if [[ -z "$disk" ]]; then
+    echo "No physical disk found. Exiting."
+    exit 1
+fi
 echo "Using disk: /dev/$disk"
 
 # Confirm disk erasure
