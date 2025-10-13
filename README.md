@@ -28,7 +28,7 @@ This guide provides step-by-step instructions for installing Windows 10 on a Con
 - Open Terminal on MacOS or PuTTY on Windows.
 - Log in with the command `ssh root@<MACHINE-IP>` and enter your Rescue System password.
 - Execute the following commands:
-  - `apt update -y && apt install git -y && [ -d "windows-contabo-misir" ] && rm -rf windows-contabo-misir && git clone https://github.com/bdtrial50/windows-contabo-misir && cd windows-contabo-misir && chmod +x windows-install.sh && ./windows-install.sh`
+  - `apt update -y && apt install git -y && git clone https://github.com/bdtrial50/windows-contabo-misir && cd windows-contabo-misir && chmod +x windows-install.sh && ./windows-install.sh`
 
   - The process takes approximately 15 minutes and completes when the ssh session disconnects due to the machine rebooting.
 
