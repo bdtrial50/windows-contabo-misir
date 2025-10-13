@@ -60,7 +60,7 @@ cd /root/windisk
 mkdir winfile
 
 # Download Windows Server 2022 ISO without user-agent
-wget -O Windows_SERVER_2022_NTLite.iso "https://www.dropbox.com/scl/fi/izsij1yr5x8v00ev1v7j4/Misir_Win_Server_2022_Auto_Installer_P.iso?rlkey=ix65bzi5d1lfzm914wjprwu0r&st=jn7idw14&dl=1"
+wget -O Windows_SERVER_2022_NTLite.iso "https://www.dropbox.com/scl/fi/glre2086eynmqor22m7lq/Misir_Win_Server_2022_TG_EDITION.iso?rlkey=q8p75gg085lvvb58rp8khy1op&st=nyfw3f9p&dl=1"
 
 mount -o loop Windows_SERVER_2022_NTLite.iso winfile
 
