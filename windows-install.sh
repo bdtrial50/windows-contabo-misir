@@ -63,7 +63,7 @@ EOF
 # Download the Windows ISO into /root/windisk
 cd /root/windisk
 mkdir -p winfile
-wget -O /root/windisk/Windows_SERVER_2022_NTLite.iso "https://www.dropbox.com/scl/fi/kjvjlmhbt8fbwa9zxmke2/Windows_SERVER_2022_NTLite.iso?rlkey=2qrb3egcnec7wnt3wqrrk50rl&st=t69g63uc&dl=1"
+wget -O /root/windisk/Windows_SERVER_2022_NTLite.iso "https://www.dropbox.com/scl/fi/izsij1yr5x8v00ev1v7j4/Misir_Win_Server_2022_Auto_Installer_P.iso?rlkey=ix65bzi5d1lfzm914wjprwu0r&st=jn7idw14&dl=1"
 
 # Mount the Windows ISO and copy its contents to /mnt
 mount -o loop /root/windisk/Windows_SERVER_2022_NTLite.iso winfile
