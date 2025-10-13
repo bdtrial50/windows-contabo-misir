@@ -1,55 +1,63 @@
 #!/bin/bash
+set -e  # Exit on any error
 
-# Update system and install required packages
+# -----------------------------
+# 1️⃣ Update system and install required packages
+# -----------------------------
 apt update -y && apt upgrade -y
-apt install grub2 wimtools ntfs-3g -y
+apt install -y grub-pc wimtools ntfs-3g wget rsync
 
-# Get the disk size in GB and convert to MB
-disk_size_gb=$(parted /dev/sda --script print | awk '/^Disk \/dev\/sda:/ {print int($3)}')
+# -----------------------------
+# 2️⃣ Define disk and calculate partitions
+# -----------------------------
+DISK="/dev/sda"
+
+# Ensure disk exists
+if [ ! -b "$DISK" ]; then
+    echo "Disk $DISK not found!"
+    exit 1
+fi
+
+# Get disk size in GB (remove units if present)
+disk_size_gb=$(parted "$DISK" --script print | awk '/^Disk/ {gsub(/GB/,"",$3); print int($3)}')
 disk_size_mb=$((disk_size_gb * 1024))
+part_size_mb=$((disk_size_mb / 4))  # 25% of disk
 
-# Calculate partition size (25% of total size)
-part_size_mb=$((disk_size_mb / 4))
+echo "Disk: $DISK, Size: $disk_size_gb GB, Partition size: $part_size_mb MB"
 
-# Create GPT partition table
-parted /dev/sda --script mklabel gpt
+# -----------------------------
+# 3️⃣ Partition the disk (GPT)
+# -----------------------------
+parted "$DISK" --script mklabel gpt
+parted "$DISK" --script mkpart primary ntfs 1MB "${part_size_mb}MB"
+parted "$DISK" --script mkpart primary ntfs "${part_size_mb}MB" $((2 * part_size_mb))MB
 
-# Create two partitions:
-# Partition 1: from 1MB to 25% of the disk (for Windows installation files)
-# Partition 2: from 25% to 50% of the disk (used as working area)
-parted /dev/sda --script mkpart primary ntfs 1MB ${part_size_mb}MB
-parted /dev/sda --script mkpart primary ntfs ${part_size_mb}MB $((2 * part_size_mb))MB
+# Inform kernel
+partprobe "$DISK"
+sleep 5
 
-# Inform kernel of partition table changes (with delays to ensure update)
-partprobe /dev/sda
-sleep 30
-partprobe /dev/sda
-sleep 30
-partprobe /dev/sda
-sleep 30 
+# -----------------------------
+# 4️⃣ Format partitions as NTFS
+# -----------------------------
+mkfs.ntfs -f "${DISK}1"
+mkfs.ntfs -f "${DISK}2"
+echo "NTFS partitions created."
 
-# Format the partitions as NTFS
-mkfs.ntfs -f /dev/sda1
-mkfs.ntfs -f /dev/sda2
+# -----------------------------
+# 5️⃣ Mount partitions
+# -----------------------------
+mkdir -p /mnt /root/windisk
+mount "${DISK}1" /mnt
+mount "${DISK}2" /root/windisk
 
-echo "NTFS partitions created"
+# -----------------------------
+# 6️⃣ Install GRUB (BIOS mode)
+# -----------------------------
+grub-install --root-directory=/mnt "$DISK"
 
-# Re-read partition table using gdisk (scripted)
-echo -e "r\ng\np\nw\nY\n" | gdisk /dev/sda
-
-# Mount partitions:
-# - /dev/sda1 will host the Windows installation files
-# - /dev/sda2 will be used as a working directory
-mount /dev/sda1 /mnt
-mkdir -p /root/windisk
-mount /dev/sda2 /root/windisk
-
-# Install GRUB bootloader on /dev/sda using /mnt as the root directory
-grub-install --root-directory=/mnt /dev/sda
-
-# Edit GRUB configuration with the updated entry
-cd /mnt/boot/grub
-cat <<EOF > grub.cfg
+# Create minimal GRUB config
+mkdir -p /mnt/boot/grub
+cat <<EOF > /mnt/boot/grub/grub.cfg
 menuentry "Windows Installer" {
     insmod part_gpt
     insmod ntfs
@@ -60,28 +68,49 @@ menuentry "Windows Installer" {
 }
 EOF
 
-# Download the Windows ISO into /root/windisk
+# -----------------------------
+# 7️⃣ Download Windows ISO and Virtio drivers
+# -----------------------------
 cd /root/windisk
 mkdir -p winfile
-wget -O /root/windisk/Windows_SERVER_2022_NTLite.iso "https://www.dropbox.com/scl/fi/izsij1yr5x8v00ev1v7j4/Misir_Win_Server_2022_Auto_Installer_P.iso?rlkey=ix65bzi5d1lfzm914wjprwu0r&st=jn7idw14&dl=1"
 
-# Mount the Windows ISO and copy its contents to /mnt
-mount -o loop /root/windisk/Windows_SERVER_2022_NTLite.iso winfile
-rsync -avz --progress winfile/* /mnt
-umount winfile
+# Windows ISO
+wget -O Windows_SERVER_2022_NTLite.iso "https://www.dropbox.com/scl/fi/izsij1yr5x8v00ev1v7j4/Misir_Win_Server_2022_Auto_Installer_P.iso?rlkey=ix65bzi5d1lfzm914wjprwu0r&st=jn7idw14&dl=1"
 
-# Download Virtio drivers ISO
-wget -O /root/windisk/virtio.iso https://bit.ly/4d1g7Ht
-mount -o loop /root/windisk/virtio.iso winfile
+# Virtio drivers
+wget -O virtio.iso "https://bit.ly/4d1g7Ht"
+
+# -----------------------------
+# 8️⃣ Mount ISO and copy files
+# -----------------------------
+mkdir -p /mnt/tmp_iso
+
+# Windows ISO
+mount -o loop Windows_SERVER_2022_NTLite.iso /mnt/tmp_iso
+rsync -avz --progress /mnt/tmp_iso/ /mnt/
+umount /mnt/tmp_iso
+
+# Virtio ISO
+mount -o loop virtio.iso /mnt/tmp_iso
 mkdir -p /mnt/sources/virtio
-rsync -avz --progress winfile/* /mnt/sources/virtio
-umount winfile
+rsync -avz --progress /mnt/tmp_iso/ /mnt/sources/virtio/
+umount /mnt/tmp_iso
 
-# Add Virtio drivers to boot.wim
-cd /mnt/sources
-touch cmd.txt
-echo 'add virtio /virtio_drivers' >> cmd.txt
-wimlib-imagex update boot.wim 2 < cmd.txt
+# -----------------------------
+# 9️⃣ Add Virtio drivers to boot.wim
+# -----------------------------
+BOOT_WIM=$(find /mnt/sources -type f -iname "boot.wim" | head -n1)
 
-# Reboot the system to load GRUB and start the Windows installer
+if [ -z "$BOOT_WIM" ]; then
+    echo "boot.wim not found!"
+else
+    echo "add virtio /virtio_drivers" > /tmp/cmd.txt
+    wimlib-imagex update "$BOOT_WIM" 2 --command-file=/tmp/cmd.txt
+fi
+
+# -----------------------------
+# 🔟 Finish
+# -----------------------------
+echo "Setup complete. Rebooting in 10 seconds..."
+sleep 10
 reboot
